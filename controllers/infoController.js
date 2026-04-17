@@ -1,60 +1,97 @@
-const infoModel = require('../models/infoModel');
+// controllers/produtoController.js
+const produtoModel = require('../models/infoModel'); 
 
-exports.getInfo = async (req, res) => {
-    try {
-        const info = await infoModel.findAll();
-        res.json(info);
-    } catch (err) {
-        console.error('Error ao buscar info:', err);
-        res.status(500).json({ error: 'Error interno ao buscar info' });
-    }
-};
+// 1. READ (GET /produtos) - Buscar todos 
+exports.getProdutos = async (req, res) => { 
+  try { 
+    const produtos = await produtoModel.findAll(); 
+    res.json(produtos);  
+  } catch (err) { 
+    console.error('Erro ao buscar produtos:', err); 
+    res.status(500).json({ error: 'Erro interno ao buscar produtos' }); 
+  } 
+}; 
 
-exports.createInfo = async (req, res) => {
-    const { nomeProd, preco, catprod, modelo, fabricante, estoque, locall } = req.body;
-    if (!nomeProd || !preco || !catprod || !modelo || !fabricante || !estoque || !locall) {
-        return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
-    }
-    try {
-        const info = await infoModel.create(nomeProd, preco, catprod, modelo, fabricante, estoque, locall);
-        res.status(201).json(info);
-    } catch (err) {
-        console.error('Error ao criar info:', err);
-        res.status(500).json({ error: 'Error interno ao criar info' });
-    }
-};
 
-exports.updateInfo = async (req, res) => {
+exports.searchProdutos = async (req, res) => {
+  const { tipo, valor } = req.query;
+
+  if (!tipo || !valor) {
+    return res.status(400).json({ error: 'Parâmetros tipo e valor são obrigatórios.' });
+  }
+
+  if (tipo !== 'nome' && tipo !== 'id') {
+    return res.status(400).json({ error: 'Tipo deve ser "nome" ou "id".' });
+  }
+
+  try {
+    let produtos;
+    if (tipo === 'nome') {
+      produtos = await produtoModel.findByName(valor);
+    } else {
+      produtos = await produtoModel.findById(parseInt(valor));
+    }
+    res.json(produtos);
+  } catch (err) {
+    console.error('Erro ao buscar produtos:', err);
+    res.status(500).json({ error: 'Erro interno ao buscar produtos' });
+  }
+}; 
+
+
+exports.createProduto = async (req, res) => { 
+    const { nomeProd, preco, catProd, modelo, fabricante, estoque, locall } = req.body;  
+     
+    if (!nomeProd || !preco || !catProd || !modelo || !fabricante || !estoque || !locall) { 
+        return res.status(400).json({ error: 'Todos os campos do produto são obrigatórios.' }); 
+    } 
+
+    try { 
+        const newProduto = await produtoModel.create(nomeProd, preco, catProd, modelo, fabricante, estoque, locall); 
+        res.status(201).json(newProduto);  
+    } catch (err) { 
+        console.error('Erro ao criar produto:', err); 
+        res.status(500).json({ error: 'Erro interno ao criar produto' }); 
+    } 
+}; 
+
+
+exports.updateProduto = async (req, res) => { 
+    const id = req.params.id; 
+    const { nomeProd, preco, catProd, modelo, fabricante, estoque, locall } = req.body;
+     
+    if (!nomeProd || !preco || !catProd || !modelo || !fabricante || !estoque || !locall) { 
+        return res.status(400).json({ error: 'Todos os campos são necessários para atualização.' }); 
+    } 
+
+    try { 
+        const updatedProduto = await produtoModel.update(id, nomeProd, preco, catProd, modelo, fabricante, estoque, locall); 
+         
+        if (!updatedProduto) { 
+            return res.status(404).json({ error: 'Produto não encontrado.' }); 
+        } 
+
+        res.json(updatedProduto);  
+    } catch (err) { 
+        console.error('Erro ao atualizar produto:', err); 
+        res.status(500).json({ error: 'Erro interno ao atualizar produto' }); 
+    } 
+}; 
+
+
+exports.deleteProduto = async (req, res) => {
     const { id } = req.params;
-    const { nomeProd, preco, catprod, modelo, fabricante, estoque, locall } = req.body;
-
-    if (!nomeProd || !preco || !catprod || !modelo || !fabricante || !estoque || !locall) {
-        return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
-    }
 
     try {
-        const info = await infoModel.update(nomeProd, preco, catprod, modelo, fabricante, estoque, locall, id);
+        const deletedProduto = await produtoModel.delete(id);
         
-        if (!info) {
-            return res.status(404).json({ error: 'Info nao encontrada' });
+        if (!deletedProduto) {
+            return res.status(404).json({ error: 'Produto não encontrado para exclusão.' });
         }
-        res.json(info);
+        
+        res.json({ message: 'Produto removido com sucesso', produto: deletedProduto });
     } catch (err) {
-        console.error('Error ao atualizar info:', err);
-        res.status(500).json({ error: 'Error interno ao atualizar info' });
-    }
-};
-
-exports.deleteInfo = async (req, res) => {
-    const { id } = req.params;
-    try {
-        const deletedInfo = await infoModel.delete(id);
-        if (!deletedInfo) {
-            return res.status(404).json({ error: 'Info nao encontrada' });
-        }
-        res.json({ message: 'Info deletada com sucesso' });
-    } catch (err) {
-        console.error('Error ao deletar info:', err);
-        res.status(500).json({ error: 'Error interno ao deletar info' });
+        console.error('Erro ao deletar produto:', err);
+        res.status(500).json({ error: 'Erro interno ao deletar produto' });
     }
 };
